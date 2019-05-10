@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fluro/fluro.dart';
 import 'routers/routers.dart';
 import 'routers/application.dart';
+import 'package:english_words/english_words.dart';
 import 'package:flutter_app/utils/shared_preferences.dart';
 import 'views/welcome_page/index.dart';
 import 'package:flutter_app/utils/provider.dart';
-import 'package:english_words/english_words.dart';
 
 SpUtil sp;
 var db;
@@ -34,8 +34,7 @@ class FlutterApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primaryColor: Color(ThemeColor),
-//        backgroundColor: Color(0xFFEFEFEF),
-        backgroundColor: Color(0xFFfffFEFEF),
+        backgroundColor: Color(0xFFEFEFEF),
         accentColor: Color(0xFF888888),
         textTheme: TextTheme(
           //设置Material的默认字体样式
