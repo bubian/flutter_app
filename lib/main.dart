@@ -34,8 +34,7 @@ class FlutterApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: ThemeData(
         primaryColor: Color(ThemeColor),
-//        backgroundColor: Color(0xFFEFEFEF),
-        backgroundColor: Color(0xFFfffFEFEF),
+        backgroundColor: Color(0xFFEFEFEF),
         accentColor: Color(0xFF888888),
         textTheme: TextTheme(
           //设置Material的默认字体样式
