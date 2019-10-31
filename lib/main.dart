@@ -6,6 +6,7 @@ import 'package:english_words/english_words.dart';
 import 'package:flutter_app/utils/shared_preferences.dart';
 import 'views/welcome_page/index.dart';
 import 'package:flutter_app/utils/provider.dart';
+import 'package:flutter_app/views/welcome_page/splash_page.dart';
 
 SpUtil sp;
 var db;
@@ -20,7 +21,7 @@ class FlutterApp extends StatelessWidget {
 
   showWelcomePage() {
     bool showWelcome = sp.getBool(sharedPreferencesKeys.showWelcome);
-    return WelcomePage();
+    return SplashPage();
 //    if (showWelcome == null || showWelcome == true) {
 //      return WelcomePage();
 //    } else {

@@ -1,9 +1,13 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:flutter_app/utils/regular_match.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_app/utils/regular_match.dart';
 import 'package:flutter_app/views/common/dialog_graph_verify.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 /// 墨水瓶（`InkWell`）可用时使用的字体样式。
 final TextStyle _availableStyle = TextStyle(
@@ -28,6 +32,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
+  /// 1 - 验证码登录 2 - 密码登录 3 - 邀请码登录
+  int loginType = 1;
+
   /// 倒计时的计时器。
   Timer _timer;
 
@@ -41,26 +48,63 @@ class LoginPageState extends State<LoginPage> {
   TextEditingController _userController = new TextEditingController();
   TextEditingController _passWordController = new TextEditingController();
 
+  void doLogin() async {
+    var url = _getUrl();
+    var httpClient = new HttpClient();
+    var request = await httpClient.getUrl(Uri.parse(url));
+    var response = await request.close();
+    if (response.statusCode == HttpStatus.ok) {
+      var json = await response.transform(utf8.decoder).join();
+      var data = jsonDecode(json);
+      print(data.toString());
+    } else {
+      Fluttertoast.showToast(msg: "登录失败!");
+    }
+  }
+
+  _getUrl(){
+    if(1 == loginType){
+      return "";
+    }else if(2 == loginType){
+
+    }else{
+      return "";
+    }
+  }
+
+  _getVerifyCode(){
+
+  }
+
   @override
   void initState() {
     super.initState();
     _seconds = widget.countdown;
   }
 
-  Widget createTextField(BuildContext context, String hintText,
+  Widget createTextField(BuildContext context, String hintText, int type,
       TextEditingController _controller) {
     return Theme(
-      data: new ThemeData(
-          primaryColor: Colors.red, hintColor: Color(0xffa8afc3)),
+      data:
+          new ThemeData(primaryColor: Colors.red, hintColor: Color(0xffa8afc3)),
       child: new ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: 54,
         ),
         child: new Padding(
           padding: EdgeInsets.only(left: 19, top: 15),
-          child: new TextField(
-            onTap: () {},
+          child: new TextFormField(
+            obscureText: 2 == type,
             controller: _controller,
+            // 使用maxLength在有最大长度和当前输入长度的提示
+            // maxLength: 1 == type ? 11 : 18,
+            inputFormatters: <TextInputFormatter>[
+              LengthLimitingTextInputFormatter(1 == type ? 11 : 18)
+            ],
+            autovalidate: true,
+            validator: (value) {
+              return value.length < 4 ? "密码长度不够4位" : null;
+            },
             decoration: new InputDecoration(
                 contentPadding: EdgeInsets.all(10.0),
                 hintText: hintText,
@@ -69,14 +113,12 @@ class LoginPageState extends State<LoginPage> {
                 ),
                 focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue)),
-                border: UnderlineInputBorder()
-            ),
+                border: UnderlineInputBorder()),
           ),
         ),
       ),
     );
   }
-
 
   /// 启动倒计时的计时器。
   void _startTimer() {
@@ -85,24 +127,22 @@ class LoginPageState extends State<LoginPage> {
       return;
     }
     // 计时器（`Timer`）组件的定期（`periodic`）构造函数，创建一个新的重复计时器。
-    _timer = Timer.periodic(
-        Duration(seconds: 1),
-            (timer) {
-          if (_seconds == 0) {
-            _cancelTimer();
-            _seconds = widget.countdown;
-            inkWellStyle = _availableStyle;
-            setState(() {});
-            //todo
-            return;
-          }
-          _seconds--;
-          _verifyStr = '${_seconds}s';
-          setState(() {});
-          if (_seconds == 0) {
-            _verifyStr = '重新发送';
-          }
-        });
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_seconds == 0) {
+        _cancelTimer();
+        _seconds = widget.countdown;
+        inkWellStyle = _availableStyle;
+        setState(() {});
+        //todo
+        return;
+      }
+      _seconds--;
+      _verifyStr = '${_seconds}s';
+      setState(() {});
+      if (_seconds == 0) {
+        _verifyStr = '重新发送';
+      }
+    });
   }
 
   /// 取消倒计时的计时器。
@@ -153,13 +193,11 @@ class LoginPageState extends State<LoginPage> {
             ),
             new Container(
               margin: EdgeInsets.only(top: 15),
-              child: createTextField(context, "请输入您的手机号码",
-                  _userController),
+              child: createTextField(context, "请输入您的手机号码", 1, _userController),
             ),
             new Stack(
               children: <Widget>[
-                createTextField(context, "请输入短信验证码",
-                    _passWordController),
+                createTextField(context, "请输入短信验证码", 2, _passWordController),
                 new Container(
                   height: 54.0,
                   child: new Align(
@@ -179,24 +217,25 @@ class LoginPageState extends State<LoginPage> {
                           }
                           showDialog(
                               context: context,
-                              builder:(BuildContext context) {
+                              builder: (BuildContext context) {
                                 return new SimpleDialog(
-                                  contentPadding: EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                  children: <Widget>[
-                                    GraphVerifyDialog()
-                                  ],
+                                  contentPadding:
+                                      EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                  children: <Widget>[GraphVerifyDialog()],
                                 );
-                              }
-                          );
+                              });
                           _startTimer();
                         });
                       },
-                      child: new Text(
-                        _verifyStr,
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 16,
+                      child: new Visibility(
+                        visible: 1 == loginType,
+                        child: new Text(
+                          _verifyStr,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -210,9 +249,8 @@ class LoginPageState extends State<LoginPage> {
                 children: <Widget>[
                   new GestureDetector(
                     onTap: () {
-                      setState(() {
-
-                      });
+                      loginType = 3;
+                      setState(() {});
                     },
                     child: new Text(
                       "我有邀请码",
@@ -225,6 +263,8 @@ class LoginPageState extends State<LoginPage> {
                   ),
                   new GestureDetector(
                     onTap: () {
+                      loginType = (loginType == 2 ? 1 : 2);
+                      _passWordController.clear();
                       setState(() {
 
                       });
@@ -232,7 +272,7 @@ class LoginPageState extends State<LoginPage> {
                     child: new Align(
                       alignment: FractionalOffset.centerRight,
                       child: new Text(
-                        "密码登陆",
+                        2 == loginType ? "验证码登录" : "密码登陆",
                         maxLines: 1,
                         style: TextStyle(
                           color: Colors.blue,
@@ -249,7 +289,25 @@ class LoginPageState extends State<LoginPage> {
               height: 45,
               margin: EdgeInsets.only(left: 19, top: 25),
               child: new RaisedButton(
-                onPressed: () {},
+                onPressed: () {
+                  String user = _userController.text;
+                  String passwd = _passWordController.text;
+
+                  RegExp exp = RegExp(
+                      r'^((13[0-9])|(14[0-9])|(15[0-9])|(16[0-9])|(17[0-9])|(18[0-9])|(19[0-9]))\d{8}$');
+                  if (null == user || user.length < 11 || !exp.hasMatch(user)) {
+                    Fluttertoast.showToast(
+                        msg: "请输入正确的电话号码!", toastLength: Toast.LENGTH_SHORT);
+                    return;
+                  }
+
+                  if (null == passwd || passwd.length < 6) {
+                    Fluttertoast.showToast(
+                        msg: "请输入正确的密码!", toastLength: Toast.LENGTH_SHORT);
+                    return;
+                  }
+                  doLogin();
+                },
 //              color: Color(0xff095BAE),
                 color: Color(0xff017EFF),
                 shape: RoundedRectangleBorder(
