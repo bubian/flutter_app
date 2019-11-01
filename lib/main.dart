@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluro/fluro.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_app/config/config_init.dart';
 import 'routers/routers.dart';
 import 'routers/application.dart';
 import 'package:english_words/english_words.dart';
@@ -7,16 +9,29 @@ import 'package:flutter_app/utils/shared_preferences.dart';
 import 'views/welcome_page/index.dart';
 import 'package:flutter_app/utils/provider.dart';
 import 'package:flutter_app/views/welcome_page/splash_page.dart';
+import 'config/native_build_config.dart';
 
 SpUtil sp;
 var db;
 const int ThemeColor = 0xFFC91B3A;
 
 class FlutterApp extends StatelessWidget {
+
+  //接收android监听
+//  Future<dynamic> _handler(MethodCall call) {
+//    switch (call.method) {
+//      case 'android':
+//        break;
+//    }
+//  }
+
   FlutterApp(){
     final router = new Router();
     Routers.configureRoutes(router);
     Application.router = router;
+    //与android连接
+//    MethodChannel _methodChannel = MethodChannel('native_to_flutter');
+//    _methodChannel.setMethodCallHandler(_handler);
   }
 
   showWelcomePage() {
@@ -63,5 +78,6 @@ void main() async {
   await provider.init(true);
   sp = await SpUtil.getInstance();
   db = Provider.db;
+  await ConfigInit.initNativeConfig();
   runApp(FlutterApp());
 }

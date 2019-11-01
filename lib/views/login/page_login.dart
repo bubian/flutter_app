@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_app/config/native_build_config.dart';
 import 'package:flutter_app/utils/regular_match.dart';
 import 'package:flutter_app/views/common/dialog_graph_verify.dart';
+import 'package:flutter_app/views/login/login_request.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_app/plugins/AppBuildInfo.dart';
+import 'package:flutter_app/log/flutter_log.dart';
 
 /// 墨水瓶（`InkWell`）可用时使用的字体样式。
 final TextStyle _availableStyle = TextStyle(
@@ -48,32 +53,8 @@ class LoginPageState extends State<LoginPage> {
   TextEditingController _userController = new TextEditingController();
   TextEditingController _passWordController = new TextEditingController();
 
-  void doLogin() async {
-    var url = _getUrl();
-    var httpClient = new HttpClient();
-    var request = await httpClient.getUrl(Uri.parse(url));
-    var response = await request.close();
-    if (response.statusCode == HttpStatus.ok) {
-      var json = await response.transform(utf8.decoder).join();
-      var data = jsonDecode(json);
-      print(data.toString());
-    } else {
-      Fluttertoast.showToast(msg: "登录失败!");
-    }
-  }
-
-  _getUrl(){
-    if(1 == loginType){
-      return "";
-    }else if(2 == loginType){
-
-    }else{
-      return "";
-    }
-  }
-
-  _getVerifyCode(){
-
+  void doLogin(String user,String pw) async {
+    LoginRequest.doLoginRequest(loginType, user, pw);
   }
 
   @override
@@ -82,7 +63,7 @@ class LoginPageState extends State<LoginPage> {
     _seconds = widget.countdown;
   }
 
-  Widget createTextField(BuildContext context, String hintText, int type,
+  Widget createTextField(BuildContext context, String hintText, int type,autovalidate,
       TextEditingController _controller) {
     return Theme(
       data:
@@ -101,9 +82,9 @@ class LoginPageState extends State<LoginPage> {
             inputFormatters: <TextInputFormatter>[
               LengthLimitingTextInputFormatter(1 == type ? 11 : 18)
             ],
-            autovalidate: true,
+            autovalidate: autovalidate,
             validator: (value) {
-              return value.length < 4 ? "密码长度不够4位" : null;
+              return value.length < 4 && value.length > 0 ? "密码长度不够4位" : null;
             },
             decoration: new InputDecoration(
                 contentPadding: EdgeInsets.all(10.0),
@@ -154,83 +135,129 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      body: new Container(
-        color: Colors.white,
-        padding: EdgeInsets.only(top: 78, left: 8, right: 27),
-        child: new Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            new Padding(
-              padding: EdgeInsets.fromLTRB(19, 0, 0, 0),
-              child: new Text(
-                "首次使用手机登录",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.black,
-                    decoration: TextDecoration.none),
+      body: new ListView(
+        children: <Widget>[new Container(
+          color: Colors.white,
+          padding: EdgeInsets.only(top: 78, left: 8, right: 27),
+          child: new Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              new Padding(
+                padding: EdgeInsets.fromLTRB(19, 0, 0, 0),
+                child: new Text(
+                  "首次使用手机登录",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.black,
+                      decoration: TextDecoration.none),
+                ),
               ),
-            ),
-            new Stack(
-              children: <Widget>[
-                new Padding(
-                  padding: EdgeInsets.only(top: 8, left: 19),
-                  child: new Text(
-                    "最高领99元红包",
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 26,
-                        decoration: TextDecoration.none),
+              new Stack(
+                children: <Widget>[
+                  new Padding(
+                    padding: EdgeInsets.only(top: 8, left: 19),
+                    child: new Text(
+                      "最高领99元红包",
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 26,
+                          decoration: TextDecoration.none),
+                    ),
                   ),
-                ),
-                new Image.asset(
-                  "assets/images/signin.webp",
-                  width: 235,
-                  height: 70,
-                ),
-              ],
-            ),
-            new Container(
-              margin: EdgeInsets.only(top: 15),
-              child: createTextField(context, "请输入您的手机号码", 1, _userController),
-            ),
-            new Stack(
-              children: <Widget>[
-                createTextField(context, "请输入短信验证码", 2, _passWordController),
-                new Container(
-                  height: 54.0,
-                  child: new Align(
-                    alignment: FractionalOffset.centerRight,
-                    child: GestureDetector(
+                  new Image.asset(
+                    "assets/images/signin.webp",
+                    width: 235,
+                    height: 70,
+                  ),
+                ],
+              ),
+              new Container(
+                margin: EdgeInsets.only(top: 15),
+                child: createTextField(context, "请输入您的手机号码", 1, false,_userController),
+              ),
+              new Stack(
+                children: <Widget>[
+                  createTextField(context, "请输入短信验证码", 2, true,_passWordController),
+                  new Container(
+                    height: 54.0,
+                    child: new Align(
+                      alignment: FractionalOffset.centerRight,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            String user = _userController.text.toString();
+                            if (!RegularMatch.isChinaPhoneLegal(user)) {
+                              Fluttertoast.showToast(
+                                  msg: "请输入正确的电话号码!",
+                                  toastLength: Toast.LENGTH_SHORT,
+                                  gravity: ToastGravity.BOTTOM,
+                                  fontSize: 12,
+                                  timeInSecForIos: 1);
+                              return;
+                            }
+                            showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return new SimpleDialog(
+                                    contentPadding:
+                                    EdgeInsets.fromLTRB(0, 0, 0, 20),
+                                    children: <Widget>[GraphVerifyDialog()],
+                                  );
+                                });
+                            _startTimer();
+                          });
+                        },
+                        child: new Visibility(
+                          visible: 1 == loginType,
+                          child: new GestureDetector(
+                            onTap: (){_startTimer();},
+                            child: new Text(
+                              _verifyStr,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 16,
+                              ),
+                            ),
+                          )
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              new Container(
+                margin: EdgeInsets.only(left: 19, top: 25),
+                child: new Stack(
+                  children: <Widget>[
+                    new GestureDetector(
                       onTap: () {
+                        loginType = 3;
+                        setState(() {});
+                      },
+                      child: new Text(
+                        "我有邀请码",
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    new GestureDetector(
+                      onTap: () {
+                        loginType = (loginType == 2 ? 1 : 2);
+                        _passWordController.clear();
                         setState(() {
-                          String user = _userController.text.toString();
-                          if (!RegularMatch.isChinaPhoneLegal(user)) {
-                            Fluttertoast.showToast(
-                                msg: "请输入正确的电话号码!",
-                                toastLength: Toast.LENGTH_SHORT,
-                                gravity: ToastGravity.BOTTOM,
-                                fontSize: 12,
-                                timeInSecForIos: 1);
-                            return;
-                          }
-                          showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return new SimpleDialog(
-                                  contentPadding:
-                                      EdgeInsets.fromLTRB(0, 0, 0, 20),
-                                  children: <Widget>[GraphVerifyDialog()],
-                                );
-                              });
-                          _startTimer();
+
                         });
                       },
-                      child: new Visibility(
-                        visible: 1 == loginType,
+                      child: new Align(
+                        alignment: FractionalOffset.centerRight,
                         child: new Text(
-                          _verifyStr,
+                          2 == loginType ? "验证码登录" : "密码登陆",
                           maxLines: 1,
                           style: TextStyle(
                             color: Colors.blue,
@@ -239,156 +266,115 @@ class LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            new Container(
-              margin: EdgeInsets.only(left: 19, top: 25),
-              child: new Stack(
-                children: <Widget>[
-                  new GestureDetector(
-                    onTap: () {
-                      loginType = 3;
-                      setState(() {});
-                    },
-                    child: new Text(
-                      "我有邀请码",
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  new GestureDetector(
-                    onTap: () {
-                      loginType = (loginType == 2 ? 1 : 2);
-                      _passWordController.clear();
-                      setState(() {
-
-                      });
-                    },
-                    child: new Align(
-                      alignment: FractionalOffset.centerRight,
-                      child: new Text(
-                        2 == loginType ? "验证码登录" : "密码登陆",
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
-            ),
-            new Container(
-              width: double.infinity,
-              height: 45,
-              margin: EdgeInsets.only(left: 19, top: 25),
-              child: new RaisedButton(
-                onPressed: () {
-                  String user = _userController.text;
-                  String passwd = _passWordController.text;
+              new Container(
+                width: double.infinity,
+                height: 45,
+                margin: EdgeInsets.only(left: 19, top: 25),
+                child: new RaisedButton(
+                  onPressed: () {
+                    String user = _userController.text;
+                    String pw = _passWordController.text;
 
-                  RegExp exp = RegExp(
-                      r'^((13[0-9])|(14[0-9])|(15[0-9])|(16[0-9])|(17[0-9])|(18[0-9])|(19[0-9]))\d{8}$');
-                  if (null == user || user.length < 11 || !exp.hasMatch(user)) {
-                    Fluttertoast.showToast(
-                        msg: "请输入正确的电话号码!", toastLength: Toast.LENGTH_SHORT);
-                    return;
-                  }
+                    RegExp exp = RegExp(
+                        r'^((15[0-9])|(14[0-9])|(15[0-9])|(16[0-9])|(17[0-9])|(18[0-9])|(19[0-9]))\d{8}$');
+                    if (null == user || user.length < 11 || !exp.hasMatch(user)) {
+                      Fluttertoast.showToast(
+                          msg: "请输入正确的电话号码!", toastLength: Toast.LENGTH_SHORT);
+                      return;
+                    }
 
-                  if (null == passwd || passwd.length < 6) {
-                    Fluttertoast.showToast(
-                        msg: "请输入正确的密码!", toastLength: Toast.LENGTH_SHORT);
-                    return;
-                  }
-                  doLogin();
-                },
+                    if (null == pw || pw.length < 6) {
+                      Fluttertoast.showToast(
+                          msg: "请输入正确的密码!", toastLength: Toast.LENGTH_SHORT);
+                      return;
+                    }
+                    doLogin(user,pw);
+                  },
 //              color: Color(0xff095BAE),
-                color: Color(0xff017EFF),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(22.5)),
-                ),
-                child: new Text(
-                  "开启医联",
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
+                  color: Color(0xff017EFF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(22.5)),
+                  ),
+                  child: new Text(
+                    "开启医联",
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                    ),
                   ),
                 ),
               ),
-            ),
-            new Container(
-              margin: EdgeInsets.only(left: 19, top: 150),
-              height: 40,
-              child: new Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  new Expanded(
-                    child: new GestureDetector(
-                      onTap: () {},
-                      child: new Container(
-                        margin: EdgeInsets.only(right: 10.5),
-                        child: new Stack(
-                          children: <Widget>[
-                            new Image.asset(
-                              "assets/images/qq.webp",
-                              height: 40,
-                              width: double.infinity,
-                              fit: BoxFit.fill,
-                            ),
-                            new Align(
-                              alignment: FractionalOffset.center,
-                              child: new Text(
-                                "QQ登陆",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 17),
+              new Container(
+                margin: EdgeInsets.only(left: 19, top: 150),
+                height: 40,
+                child: new Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    new Expanded(
+                      child: new GestureDetector(
+                        onTap: () {},
+                        child: new Container(
+                          margin: EdgeInsets.only(right: 10.5),
+                          child: new Stack(
+                            children: <Widget>[
+                              new Image.asset(
+                                "assets/images/qq.webp",
+                                height: 40,
+                                width: double.infinity,
+                                fit: BoxFit.fill,
                               ),
-                            )
-                          ],
+                              new Align(
+                                alignment: FractionalOffset.center,
+                                child: new Text(
+                                  "QQ登陆",
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 17),
+                                ),
+                              )
+                            ],
+                          ),
                         ),
                       ),
+                      flex: 1,
                     ),
-                    flex: 1,
-                  ),
-                  new Expanded(
-                    child: new GestureDetector(
-                      onTap: () {},
-                      child: new Container(
-                        margin: EdgeInsets.only(left: 10.5),
-                        child: new Stack(
-                          children: <Widget>[
-                            new Image.asset(
-                              "assets/images/wechat.webp",
-                              height: 40,
-                              width: double.infinity,
-                              fit: BoxFit.fill,
-                            ),
-                            new Align(
-                              alignment: FractionalOffset.center,
-                              child: new Text(
-                                "微信登陆",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 17),
+                    new Expanded(
+                      child: new GestureDetector(
+                        onTap: () {},
+                        child: new Container(
+                          margin: EdgeInsets.only(left: 10.5),
+                          child: new Stack(
+                            children: <Widget>[
+                              new Image.asset(
+                                "assets/images/wechat.webp",
+                                height: 40,
+                                width: double.infinity,
+                                fit: BoxFit.fill,
                               ),
-                            )
-                          ],
+                              new Align(
+                                alignment: FractionalOffset.center,
+                                child: new Text(
+                                  "微信登陆",
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 17),
+                                ),
+                              )
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    flex: 1,
-                  )
-                ],
+                      flex: 1,
+                    )
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        ),],
+      )
     );
   }
 }
