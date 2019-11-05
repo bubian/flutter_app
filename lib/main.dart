@@ -69,6 +69,10 @@ class FlutterApp extends StatelessWidget {
           body: showWelcomePage()
       ),
       onGenerateRoute: Application.router.generator,
+      //名为"/"的路由作为应用的home(首页)
+      // initialRoute: "/",
+      //注册路由表
+      // routes: {},
     );
   }
 }

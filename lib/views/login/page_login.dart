@@ -5,6 +5,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' as prefix0;
 import 'package:flutter/services.dart';
 import 'package:flutter_app/config/native_build_config.dart';
 import 'package:flutter_app/utils/regular_match.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_app/views/login/login_request.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter_app/plugins/AppBuildInfo.dart';
 import 'package:flutter_app/log/flutter_log.dart';
+import 'package:flutter_app/routers/routers.dart';
 
 /// 墨水瓶（`InkWell`）可用时使用的字体样式。
 final TextStyle _availableStyle = TextStyle(
@@ -37,7 +39,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class LoginPageState extends State<LoginPage> {
-  /// 1 - 验证码登录 2 - 密码登录 3 - 邀请码登录
+  /// 1 - 验证码登录 2 - 密¨码登录 3 - 邀请码登录
   int loginType = 1;
 
   /// 倒计时的计时器。
@@ -50,11 +52,37 @@ class LoginPageState extends State<LoginPage> {
   TextStyle inkWellStyle = _availableStyle;
   String _verifyStr = '获取验证码';
 
+
   TextEditingController _userController = new TextEditingController();
   TextEditingController _passWordController = new TextEditingController();
 
   void doLogin(String user,String pw) async {
-    LoginRequest.doLoginRequest(loginType, user, pw);
+    showLoadingDialog();
+//    await LoginRequest.doLoginRequest(loginType, user, pw);
+    await Future.delayed(Duration(seconds: 2));
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamedAndRemoveUntil(Routers.home,(Route<dynamic> route) => false);
+  }
+
+  showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, //点击遮罩不关闭对话框
+      builder: (context) {
+        return AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              CircularProgressIndicator(),
+              Padding(
+                padding: const EdgeInsets.only(top: 26.0),
+                child: Text("登录中，请稍后..."),
+              )
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -66,8 +94,7 @@ class LoginPageState extends State<LoginPage> {
   Widget createTextField(BuildContext context, String hintText, int type,autovalidate,
       TextEditingController _controller) {
     return Theme(
-      data:
-          new ThemeData(primaryColor: Colors.red, hintColor: Color(0xffa8afc3)),
+      data: new ThemeData(primaryColor: Colors.red, hintColor: Color(0xffa8afc3)),
       child: new ConstrainedBox(
         constraints: BoxConstraints(
           minHeight: 54,
@@ -101,6 +128,23 @@ class LoginPageState extends State<LoginPage> {
     );
   }
 
+  void _openGraphVerifyDialog(){
+    showDialog(
+      context: context,
+      builder: (context){
+        return AlertDialog(
+          content: new GraphVerifyDialog(
+             callback: (){
+               _startTimer();
+             },
+          ),
+          contentPadding: EdgeInsets.all(0),
+          titlePadding: EdgeInsets.all(0),
+        );
+      }
+    );
+  }
+
   /// 启动倒计时的计时器。
   void _startTimer() {
     bool isActive = null == _timer ? false : _timer.isActive;
@@ -114,7 +158,6 @@ class LoginPageState extends State<LoginPage> {
         _seconds = widget.countdown;
         inkWellStyle = _availableStyle;
         setState(() {});
-        //todo
         return;
       }
       _seconds--;
@@ -206,13 +249,13 @@ class LoginPageState extends State<LoginPage> {
                                     children: <Widget>[GraphVerifyDialog()],
                                   );
                                 });
-                            _startTimer();
+                            _openGraphVerifyDialog();
                           });
                         },
                         child: new Visibility(
                           visible: 1 == loginType,
                           child: new GestureDetector(
-                            onTap: (){_startTimer();},
+                            onTap: (){_openGraphVerifyDialog();},
                             child: new Text(
                               _verifyStr,
                               maxLines: 1,

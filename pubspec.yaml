@@ -84,4 +84,5 @@ flutter:
   assets:
   - assets/app.db
   - assets/images/
+  - assets/images/home/
   - assets/fonts/

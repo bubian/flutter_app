@@ -1,30 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class GraphVerifyDialog extends StatefulWidget {
   @override
-  State<StatefulWidget> createState() => CodeDialog();
+  State<StatefulWidget> createState() => CodeDialog(callback: callback);
+
+  final Function() callback;
+  GraphVerifyDialog({this.callback});
 }
 
 class CodeDialog extends State<GraphVerifyDialog> {
 
   double xOffset;
+  Function() callback;
 
-  CodeDialog({this.xOffset: 0});
+  CodeDialog({this.xOffset: 0,this.callback});
+
   @override
   Widget build(BuildContext context) {
     return new Container(
-      width: double.infinity,
+      width: double.minPositive,
+      height: 280,
       child: new Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           new Stack(
-            alignment: AlignmentDirectional.centerStart,
+            alignment: AlignmentDirectional.centerEnd,
             children: <Widget>[
-              new Container(
+              new Image(
                 width: double.infinity,
+                alignment: Alignment.center,
+                fit: BoxFit.fill,
                 height: 175,
-                color: Color(0xffa2000d),
+                image:AssetImage("assets/images/food04.jpeg"),
+
               ),
               new Container(
                 width: 65,
@@ -33,8 +44,24 @@ class CodeDialog extends State<GraphVerifyDialog> {
                 decoration: new BoxDecoration(
                   color: Color(0xffffffff),
                   shape: BoxShape.rectangle,
+
                 ),
-              )
+              ),
+
+              new Transform(
+                transform: Matrix4.translationValues(xOffset + 20,0,0),
+                child: new Container(
+                  alignment: Alignment.topLeft,
+                  margin: EdgeInsets.only(left: 15),
+                  child: new Image(
+                    width: 65,
+                    height: 65,
+                    alignment: Alignment.center,
+                    fit: BoxFit.fill,
+                    image:AssetImage("assets/images/food06.jpeg"),
+                  ),
+                ),
+              ),
             ],
           ),
           new Padding(
@@ -61,19 +88,34 @@ class CodeDialog extends State<GraphVerifyDialog> {
                 ),
               ),
               new GestureDetector(
-                onHorizontalDragStart: (DragStartDetails details){
+                //手指按下时会触发此回调
+                onPanDown: (DragDownDetails e){
+                  setState(() {
+                    xOffset = 0;
+                  });
+                },
+                onPanUpdate: (DragUpdateDetails e){
+                  setState(() {
+                    if(xOffset + e.delta.dx >= 165){
+                      xOffset = 165;
+                      return;
+                    }
+                    xOffset = xOffset + e.delta.dx;
+                  });
+                },
+
+                onPanEnd: (DragEndDetails e){
+                  setState(() {
+                    xOffset = 0;
+                    Navigator.of(context).pop();
+                    Fluttertoast.showToast(msg: "验证成功!",toastLength: Toast.LENGTH_SHORT);
+                    if(null != callback){
+                      callback();
+                    }
+                  });
 
                 },
-                onHorizontalDragUpdate: (DragUpdateDetails details){
-                  xOffset = xOffset + details.delta.dx;
-                  setState(() {});
-                },
-                onHorizontalDragCancel: (){
 
-                },
-                onHorizontalDragEnd: (DragEndDetails details){
-
-                },
                 child: new Transform(
                     transform: new Matrix4.translationValues(xOffset, 0, 0),
                   child: new Container(
