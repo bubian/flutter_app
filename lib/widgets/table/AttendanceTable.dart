@@ -77,7 +77,6 @@ class AttendanceTableState extends State<AttendanceTable>{
   final AttendanceTable table;
 
   @override
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onPanDown: (DragDownDetails e) {
