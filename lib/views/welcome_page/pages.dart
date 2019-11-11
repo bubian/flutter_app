@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/views/login/page_login.dart';
+import 'package:flutter_app/views/test/test_custom_view.dart';
 import '../../routers/application.dart';
 import '../../routers/routers.dart';
 import '../../utils/shared_preferences.dart';
@@ -41,10 +42,10 @@ class Page extends StatelessWidget {
   }
 
   _goLoginPage(context) {
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil(Routers.login, (Route<dynamic> route) => false);
+//    Navigator.of(context)
+//        .pushNamedAndRemoveUntil(Routers.login, (Route<dynamic> route) => false);
 
-//    Navigator.push(context, MaterialPageRoute(builder: (context){return new LoginPage();}));
+    Navigator.push(context, MaterialPageRoute(builder: (context){return new TestCustomView();}));
   }
 
   Widget createButton(
