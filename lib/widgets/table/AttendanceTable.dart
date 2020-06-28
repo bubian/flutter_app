@@ -13,7 +13,7 @@ class AttendanceTable extends StatefulWidget {
     this.height,
     this.frameLine: 0x1111,
     this.frameLineColor: const Color(0xffe2e7f1),
-    this.tableContentColor: Colors.black,
+    this.tableContentColor: Colors.white,
     this.backgroundColor = Colors.white,
     this.horizontalTitle,
     this.verticalTitle,
